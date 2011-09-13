@@ -6,7 +6,7 @@
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 
 #Include <WinAPI.au3>
-#include <Crypt.au3>
+#Include <File.au3>
 #include <ButtonConstants.au3>
 #include <EditConstants.au3>
 #include <GUIConstantsEx.au3>
@@ -54,9 +54,10 @@ EndFunc
 
 Func _CryptFile($lFile, $lAction)
 
-	$Key = "123";_Crypt_DeriveKey(_GuiAskPassword(),$CALG_RC4)
+	$Key = _Crypt_DeriveKey(_GuiAskPassword(),$CALG_RC4)
 
-	$lFile2 = $lFile & ".cry"
+;~ 	$lFile2 = $lFile ;& ".cry"
+	$lFile2 = _CreateTempFile($lFile)
 
 	If $lAction = "encrypt" Then
 		_Crypt_EncryptFile($lFile, $lFile2, $Key, $CALG_AES_128)
@@ -65,6 +66,15 @@ Func _CryptFile($lFile, $lAction)
 		_Crypt_DecryptFile($lFile, $lFile2, $Key, $CALG_AES_128)
 	EndIf
 	_Crypt_DestroyKey($Key)
+
+
+
+EndFunc
+
+Func _ExchangeFiles($lFile1, $lFile2)
+;~ 	FileDelete($lFile1)
+
+;~ 	FileMove($lFile1)
 
 EndFunc
 
@@ -108,6 +118,15 @@ Func _GuiAskPassword() ; asks for the password
 			_WriteDebug("ERR ;_GuiAskPassword;Password input field could not be created - Exiting")
 			Exit 1
 	EndSelect
+EndFunc
+
+Func _CreateTempFile($lInputFile) ; pathsplit of original file and returning temp path to file
+	Local $szDrive, $szDir, $szFName, $szExt
+
+	_PathSplit($lInputFile, $szDrive, $szDir, $szFName, $szExt)
+
+	Return @TempDir & "\" & $szFName & "." & $szExt
+
 EndFunc
 
 Func _WriteDebug($lParam) ; $lType, $lFunc, $lString) ; creates debuglog for analyzing problems
