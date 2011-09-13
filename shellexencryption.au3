@@ -6,6 +6,7 @@
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 
 #Include <WinAPI.au3>
+#include <Crypt.au3>
 #include <ButtonConstants.au3>
 #include <EditConstants.au3>
 #include <GUIConstantsEx.au3>
@@ -16,6 +17,7 @@
 Global $gDirTemp = @TempDir & "\shellexencryption"
 Global $gDbgFile = $gDirTemp & "\shellexencryptiondbg.log"
 Global $gFile = ""
+Global $gAction = ""
 
 If FileExists($gDbgFile) Then
 	FileDelete($gDbgFile) ; cleaning old logfile
@@ -26,8 +28,9 @@ EndIf
 _CreateShellExHandler()
 
 $gFile = _GetCommandLineParameters()
-_GuiAskPassword()
-$gResultText = _GenerateChecksums($gFile)
+_CryptFile($gFile, $gAction)
+
+;~ $gResultText = _GenerateChecksums($gFile)
 
 Func _CreateShellExHandler()
 	Local $lRegReturn
@@ -49,12 +52,39 @@ Func _CreateShellExHandler()
 
 EndFunc
 
+Func _CryptFile($lFile, $lAction)
+
+	$Key = "123";_Crypt_DeriveKey(_GuiAskPassword(),$CALG_RC4)
+
+	$lFile2 = $lFile & ".cry"
+
+	If $lAction = "encrypt" Then
+		_Crypt_EncryptFile($lFile, $lFile2, $Key, $CALG_AES_128)
+		If @error Then MsgBox(16, "Error", "_Crypt_EncryptFile: " & @error)
+	Else
+		_Crypt_DecryptFile($lFile, $lFile2, $Key, $CALG_AES_128)
+	EndIf
+	_Crypt_DestroyKey($Key)
+
+EndFunc
+
 Func _GetCommandLineParameters() ; reading parameters
 
 	If $CmdLine[0] <> "" Then
+		Switch $CmdLine[1]
+			Case "/encrypt"
+				$gAction = "encrypt"
+				_WriteDebug('INFO;_GetCommandLineParameters;Parameter "' & $CmdLine[1] & '" was chosen')
+			Case "/decrypt"
+				$gAction = "decrypt"
+				_WriteDebug('INFO;_GetCommandLineParameters;Parameter "' & $CmdLine[1] & '" was chosen')
+			Case Else
+				_WriteDebug('INFO;_GetCommandLineParameters;Parameter "' & $CmdLine[1] & '" not known - Exiting')
+				Exit 2
+		EndSwitch
 
-		_WriteDebug('INFO;_GetCommandLineParameters;Parameter "' & $CmdLine[1] & '" found')
-		Return $CmdLine[1]
+		_WriteDebug('INFO;_GetCommandLineParameters;File "' & $CmdLine[2] & '" found')
+		Return $CmdLine[2] ;
 	Else
 		_WriteDebug('INFO;_GetCommandLineParameters;No Parameter found')
 		MsgBox(16,"ChecksumGen - Error","No parameter was given",10)
